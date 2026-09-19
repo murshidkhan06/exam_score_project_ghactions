@@ -1,0 +1,62 @@
+# .github/workflows/ci.yml
+#
+# WHY this file exists: without it, "does the project still work?" is only answered when a
+# human remembers to run `pytest` before merging -- and humans forget. This workflow makes
+# GitHub itself run the test suite automatically on every push and every pull request, and
+# blocks a PR from looking "safe to merge" (a red X vs. a green check) without a human doing
+# anything extra.
+#
+# WHAT it does: on every push/PR, GitHub spins up a clean Ubuntu virtual machine, checks out
+# this repo, installs Python + the exact dependencies in requirements.txt, and runs the same
+# `pytest tests/` command you would run on your own laptop. This is deliberately the SAME
+# command a developer runs locally -- CI is not a different test suite, it is the same suite,
+# run automatically, on a clean machine that proves it doesn't just work "on my machine."
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Run test suite
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Get the code onto the runner. Every workflow needs this first.
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. Install the same Python version the project is developed with, and cache pip
+      #    downloads keyed on requirements.txt -- so a rerun with unchanged dependencies
+      #    installs in seconds instead of re-downloading every package.
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      # 3. Install exactly what's declared in requirements.txt -- nothing more. If a
+      #    dependency is missing from this file, CI is what catches it (a common real
+      #    mistake: "it works locally" because a package was already installed globally).
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      # 4. Run the exact same command a developer runs locally. If this exits non-zero,
+      #    GitHub marks the commit/PR as failed -- no manual judgement call needed.
+      - name: Run tests
+        run: python -m pytest tests/ -v
+
+      # 5. A small extra safety net: confirm the saved model file the tests depend on is
+      #    actually present in the repo (catches an accidental .gitignore mistake early,
+      #    with a clear error message instead of a confusing test failure).
+      - name: Verify the trained model artifact is present
+        run: |
+          if [ ! -f "models/exam_score_pipeline.joblib" ]; then
+            echo "::error::models/exam_score_pipeline.joblib is missing from the repo."
+            exit 1
+          fi
+          echo "Model artifact present: models/exam_score_pipeline.joblib"
