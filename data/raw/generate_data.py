@@ -10,9 +10,9 @@ Deliberately built to justify every feature engineering concept the notebook dem
 - an enrollment_date column (time-based feature creation)
 - a couple of weak/noisy columns (feature selection has something real to drop)
 """
+
 import numpy as np
 import pandas as pd
-from datetime import timedelta
 
 rng = np.random.default_rng(42)
 N = 500
@@ -33,8 +33,8 @@ city = rng.choice(["Mumbai", "Delhi", "Bengaluru", "Pune"], size=N)
 enrollment_date = SNAPSHOT_DATE - pd.to_timedelta(rng.integers(30, 730, N), unit="D")
 
 # Weak / noisy columns -- feature selection should learn to de-prioritize these
-shoe_size = rng.normal(8, 1.5, N)          # genuinely irrelevant to exam performance
-lucky_number = rng.integers(1, 100, N)      # pure noise
+shoe_size = rng.normal(8, 1.5, N)  # genuinely irrelevant to exam performance
+lucky_number = rng.integers(1, 100, N)  # pure noise
 
 income_effect = {"Low": -2.0, "Medium": 0.0, "High": 3.0}
 
@@ -55,20 +55,22 @@ final_score = (
 )
 final_score = np.clip(final_score, 0, 100).round(1)
 
-df = pd.DataFrame({
-    "student_id": np.arange(1, N + 1),
-    "study_hours": study_hours.round(1),
-    "attendance_pct": attendance_pct.round(1),
-    "mock_test_1": mock_test_1.round(1),
-    "mock_test_2": mock_test_2.round(1),
-    "mock_test_3": mock_test_3.round(1),
-    "income_bracket": income_bracket,
-    "city": city,
-    "enrollment_date": enrollment_date,
-    "shoe_size": shoe_size.round(1),
-    "lucky_number": lucky_number,
-    "final_score": final_score,
-})
+df = pd.DataFrame(
+    {
+        "student_id": np.arange(1, N + 1),
+        "study_hours": study_hours.round(1),
+        "attendance_pct": attendance_pct.round(1),
+        "mock_test_1": mock_test_1.round(1),
+        "mock_test_2": mock_test_2.round(1),
+        "mock_test_3": mock_test_3.round(1),
+        "income_bracket": income_bracket,
+        "city": city,
+        "enrollment_date": enrollment_date,
+        "shoe_size": shoe_size.round(1),
+        "lucky_number": lucky_number,
+        "final_score": final_score,
+    }
+)
 
 # Realistic missingness in study_hours only (MAR-ish: busier/less-engaged students skip logging it)
 missing_idx = rng.choice(N, size=int(N * 0.06), replace=False)

@@ -18,6 +18,7 @@ WHY does this file exist, separate from the notebook?
     can import from the SAME place. This is one of the most common real "it worked in my
     notebook but broke in production" mistakes, and it's exactly why this file exists.
 """
+
 import pandas as pd
 from sklearn.base import BaseEstimator, TransformerMixin
 
@@ -31,7 +32,9 @@ class FeatureCreator(BaseEstimator, TransformerMixin):
 
     def transform(self, X):
         X = X.copy()
-        X["tenure_days"] = (pd.Timestamp("2026-01-01") - pd.to_datetime(X["enrollment_date"])).dt.days
+        X["tenure_days"] = (
+            pd.Timestamp("2026-01-01") - pd.to_datetime(X["enrollment_date"])
+        ).dt.days
         X["study_x_attendance"] = X["study_hours"] * X["attendance_pct"]
         X = X.drop(columns=["enrollment_date"])
         return X

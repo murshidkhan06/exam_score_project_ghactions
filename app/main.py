@@ -23,8 +23,9 @@ Then try:
         "enrollment_date": "2025-06-01", "shoe_size": 9.0, "lucky_number": 42
     }'
 """
-from pathlib import Path
+
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import Literal
 
 import joblib
@@ -39,7 +40,9 @@ from pydantic import BaseModel, ConfigDict, Field
 # and the notebook's explanation for the full story of this exact bug.
 from features import FeatureCreator  # noqa: F401
 
-MODEL_PATH = Path(__file__).resolve().parent.parent / "models" / "exam_score_pipeline.joblib"
+MODEL_PATH = (
+    Path(__file__).resolve().parent.parent / "models" / "exam_score_pipeline.joblib"
+)
 
 # Loaded once, at startup -- NOT on every request. This is the same fitted pipeline object
 # built and verified in notebooks/exam_score_pipeline.ipynb, nothing re-implemented here.
@@ -62,8 +65,8 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="Student Exam Score Predictor",
     description="Predicts a student's final exam score from raw, unprocessed profile data. "
-                "All feature engineering (imputation, scaling, encoding, PCA, feature "
-                "selection) happens automatically inside the loaded pipeline.",
+    "All feature engineering (imputation, scaling, encoding, PCA, feature "
+    "selection) happens automatically inside the loaded pipeline.",
     version="1.0.0",
     lifespan=lifespan,
 )
@@ -75,30 +78,40 @@ class StudentInput(BaseModel):
     itself."""
 
     study_hours: float = Field(..., ge=0, le=40, description="Weekly study hours")
-    attendance_pct: float = Field(..., ge=0, le=100, description="Attendance percentage")
+    attendance_pct: float = Field(
+        ..., ge=0, le=100, description="Attendance percentage"
+    )
     mock_test_1: float = Field(..., ge=0, le=100)
     mock_test_2: float = Field(..., ge=0, le=100)
     mock_test_3: float = Field(..., ge=0, le=100)
     income_bracket: Literal["Low", "Medium", "High"]
     city: str
     enrollment_date: str = Field(..., description="YYYY-MM-DD")
-    shoe_size: float = Field(..., description="Deliberately irrelevant -- kept to show the pipeline ignores it")
-    lucky_number: int = Field(..., description="Deliberately irrelevant -- kept to show the pipeline ignores it")
+    shoe_size: float = Field(
+        ...,
+        description="Deliberately irrelevant -- kept to show the pipeline ignores it",
+    )
+    lucky_number: int = Field(
+        ...,
+        description="Deliberately irrelevant -- kept to show the pipeline ignores it",
+    )
 
-    model_config = ConfigDict(json_schema_extra={
-        "example": {
-            "study_hours": 12.5,
-            "attendance_pct": 88.0,
-            "mock_test_1": 72.0,
-            "mock_test_2": 75.0,
-            "mock_test_3": 70.0,
-            "income_bracket": "Medium",
-            "city": "Pune",
-            "enrollment_date": "2025-06-01",
-            "shoe_size": 9.0,
-            "lucky_number": 42,
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "study_hours": 12.5,
+                "attendance_pct": 88.0,
+                "mock_test_1": 72.0,
+                "mock_test_2": 75.0,
+                "mock_test_3": 70.0,
+                "income_bracket": "Medium",
+                "city": "Pune",
+                "enrollment_date": "2025-06-01",
+                "shoe_size": 9.0,
+                "lucky_number": 42,
+            }
         }
-    })
+    )
 
 
 class PredictionOutput(BaseModel):
@@ -125,7 +138,10 @@ def predict(student: StudentInput):
 
     try:
         prediction = pipeline.predict(input_df)[0]
-    except Exception as e:
-        raise HTTPException(status_code=422, detail=f"Prediction failed: {e}")
+    except (ValueError, TypeError) as error:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Prediction failed: {error}",
+        ) from error
 
     return PredictionOutput(predicted_final_score=round(float(prediction), 1))

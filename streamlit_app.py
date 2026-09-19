@@ -26,6 +26,7 @@ Inside the combined Docker image, both processes run in the SAME container, so
 API_URL defaults to http://localhost:8000 and just works without any configuration --
 see docker/entrypoint.sh.
 """
+
 import os
 from datetime import date
 
@@ -41,9 +42,9 @@ st.set_page_config(page_title="Exam Score Predictor", page_icon="🎓", layout="
 
 st.title("🎓 Student Exam Score Predictor")
 st.caption(
-    "A UI for the FastAPI service at `%s` -- every prediction below goes through that "
+    f"A UI for the FastAPI service at `{API_URL}` -- every prediction below goes through that "
     "same API, using the same trained pipeline. This page does no prediction logic of "
-    "its own." % API_URL
+    "its own."
 )
 
 # ---- sidebar: is the API actually reachable? -------------------------------------------
@@ -67,22 +68,43 @@ with st.form("prediction_form"):
     col1, col2 = st.columns(2)
 
     with col1:
-        study_hours = st.number_input("Weekly study hours", min_value=0.0, max_value=40.0, value=12.5, step=0.5)
-        attendance_pct = st.slider("Attendance %", min_value=0.0, max_value=100.0, value=88.0)
-        mock_test_1 = st.number_input("Mock test 1 score", min_value=0.0, max_value=100.0, value=72.0)
-        mock_test_2 = st.number_input("Mock test 2 score", min_value=0.0, max_value=100.0, value=75.0)
-        mock_test_3 = st.number_input("Mock test 3 score", min_value=0.0, max_value=100.0, value=70.0)
+        study_hours = st.number_input(
+            "Weekly study hours", min_value=0.0, max_value=40.0, value=12.5, step=0.5
+        )
+        attendance_pct = st.slider(
+            "Attendance %", min_value=0.0, max_value=100.0, value=88.0
+        )
+        mock_test_1 = st.number_input(
+            "Mock test 1 score", min_value=0.0, max_value=100.0, value=72.0
+        )
+        mock_test_2 = st.number_input(
+            "Mock test 2 score", min_value=0.0, max_value=100.0, value=75.0
+        )
+        mock_test_3 = st.number_input(
+            "Mock test 3 score", min_value=0.0, max_value=100.0, value=70.0
+        )
 
     with col2:
-        income_bracket = st.selectbox("Income bracket", ["Low", "Medium", "High"], index=1)
-        city = st.selectbox("City", ["Mumbai", "Delhi", "Bengaluru", "Pune", "Other"], index=3)
+        income_bracket = st.selectbox(
+            "Income bracket", ["Low", "Medium", "High"], index=1
+        )
+        city = st.selectbox(
+            "City", ["Mumbai", "Delhi", "Bengaluru", "Pune", "Other"], index=3
+        )
         enrollment_date = st.date_input("Enrollment date", value=date(2025, 6, 1))
         shoe_size = st.number_input(
-            "Shoe size", min_value=0.0, max_value=20.0, value=9.0,
+            "Shoe size",
+            min_value=0.0,
+            max_value=20.0,
+            value=9.0,
             help="Deliberately irrelevant to the prediction -- kept to show the model ignores it.",
         )
         lucky_number = st.number_input(
-            "Lucky number", min_value=1, max_value=100, value=42, step=1,
+            "Lucky number",
+            min_value=1,
+            max_value=100,
+            value=42,
+            step=1,
             help="Also deliberately irrelevant -- pure noise, same reason as above.",
         )
 
@@ -112,14 +134,18 @@ if submitted:
             result = response.json()
             score = result["predicted_final_score"]
             st.metric("Predicted final score", f"{score:.1f} / 100")
-            st.caption(f"model_version: {result.get('model_version', 'n/a')}  |  "
-                       f"request_id: {result.get('request_id', 'n/a')}")
+            st.caption(
+                f"model_version: {result.get('model_version', 'n/a')}  |  "
+                f"request_id: {result.get('request_id', 'n/a')}"
+            )
             if score >= 75:
                 st.success("On track.")
             elif score >= 50:
                 st.warning("Worth a check-in -- borderline.")
             else:
-                st.error("At risk -- this is exactly the kind of student this project was built to flag early.")
+                st.error(
+                    "At risk -- this is exactly the kind of student this project was built to flag early."
+                )
         else:
             # The API validates input with Pydantic -- a 422 here means something in the
             # form violates the schema (shouldn't normally happen through this UI, since

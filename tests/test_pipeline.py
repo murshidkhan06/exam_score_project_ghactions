@@ -6,6 +6,7 @@ catch a bug in the model/feature-engineering logic even if the API layer were co
 broken, and vice versa (see test_api.py) -- keeping the two test files separate mirrors
 keeping the two concerns (ML pipeline vs. web layer) separate in the actual project.
 """
+
 import sys
 from pathlib import Path
 
@@ -15,32 +16,42 @@ import joblib
 import pandas as pd
 import pytest
 
-from features import FeatureCreator  # noqa: F401 -- required for joblib to unpickle the pipeline
+from features import (
+    FeatureCreator,  # noqa: F401 -- required for joblib to unpickle the pipeline
+)
 
-MODEL_PATH = Path(__file__).resolve().parent.parent / "models" / "exam_score_pipeline.joblib"
+MODEL_PATH = (
+    Path(__file__).resolve().parent.parent / "models" / "exam_score_pipeline.joblib"
+)
 
 
 @pytest.fixture(scope="module")
 def pipeline():
     if not MODEL_PATH.exists():
-        pytest.skip(f"No trained model found at {MODEL_PATH} -- run the notebook first.")
+        pytest.skip(
+            f"No trained model found at {MODEL_PATH} -- run the notebook first."
+        )
     return joblib.load(MODEL_PATH)
 
 
 @pytest.fixture
 def sample_student():
-    return pd.DataFrame([{
-        "study_hours": 12.5,
-        "attendance_pct": 88.0,
-        "mock_test_1": 72.0,
-        "mock_test_2": 75.0,
-        "mock_test_3": 70.0,
-        "income_bracket": "Medium",
-        "city": "Pune",
-        "enrollment_date": "2025-06-01",
-        "shoe_size": 9.0,
-        "lucky_number": 42,
-    }])
+    return pd.DataFrame(
+        [
+            {
+                "study_hours": 12.5,
+                "attendance_pct": 88.0,
+                "mock_test_1": 72.0,
+                "mock_test_2": 75.0,
+                "mock_test_3": 70.0,
+                "income_bracket": "Medium",
+                "city": "Pune",
+                "enrollment_date": "2025-06-01",
+                "shoe_size": 9.0,
+                "lucky_number": 42,
+            }
+        ]
+    )
 
 
 def test_pipeline_loads_successfully(pipeline):
@@ -50,12 +61,15 @@ def test_pipeline_loads_successfully(pipeline):
 def test_pipeline_predicts_a_reasonable_score(pipeline, sample_student):
     prediction = pipeline.predict(sample_student)[0]
     # exam scores in this dataset are 0-100 -- a real prediction should land in a sane range
-    assert 0 <= prediction <= 110  # small headroom since Linear Regression can slightly overshoot
+    assert (
+        0 <= prediction <= 110
+    )  # small headroom since Linear Regression can slightly overshoot
 
 
 def test_pipeline_handles_missing_study_hours(pipeline, sample_student):
     """The pipeline was specifically trained to impute missing study_hours -- confirm it
-    doesn't crash and still produces a sensible prediction when that value is missing."""
+    doesn't crash and still produces a sensible prediction when that value is missing.
+    """
     student_missing_hours = sample_student.copy()
     student_missing_hours["study_hours"] = None
     prediction = pipeline.predict(student_missing_hours)[0]

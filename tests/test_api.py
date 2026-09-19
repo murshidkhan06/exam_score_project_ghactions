@@ -8,6 +8,7 @@ response schema) and a bug in the ML pipeline itself are never confused for one 
 Uses FastAPI's TestClient, which runs the app in-process (no real server, no network port
 needed) -- fast, and exercises the exact same code path a real HTTP request would.
 """
+
 import sys
 from pathlib import Path
 
@@ -16,10 +17,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import pytest
 from fastapi.testclient import TestClient
 
-from app.main import app, MODEL_PATH
+from app.main import MODEL_PATH, app
 
 if not MODEL_PATH.exists():
-    pytest.skip(f"No trained model found at {MODEL_PATH} -- run the notebook first.", allow_module_level=True)
+    pytest.skip(
+        f"No trained model found at {MODEL_PATH} -- run the notebook first.",
+        allow_module_level=True,
+    )
 
 
 @pytest.fixture
@@ -76,19 +80,26 @@ def test_predict_matches_pipeline_prediction_directly(client):
     endpoint should add zero logic of its own beyond validation and formatting."""
     import joblib
     import pandas as pd
+
     from features import FeatureCreator  # noqa: F401
 
     pipeline = joblib.load(MODEL_PATH)
-    direct_prediction = round(float(pipeline.predict(pd.DataFrame([VALID_PAYLOAD]))[0]), 1)
+    direct_prediction = round(
+        float(pipeline.predict(pd.DataFrame([VALID_PAYLOAD]))[0]), 1
+    )
 
-    api_prediction = client.post("/predict", json=VALID_PAYLOAD).json()["predicted_final_score"]
+    api_prediction = client.post("/predict", json=VALID_PAYLOAD).json()[
+        "predicted_final_score"
+    ]
     assert direct_prediction == api_prediction
 
 
 def test_predict_rejects_missing_required_field(client):
     incomplete_payload = {k: v for k, v in VALID_PAYLOAD.items() if k != "study_hours"}
     response = client.post("/predict", json=incomplete_payload)
-    assert response.status_code == 422  # FastAPI/Pydantic validation error, not a 500 crash
+    assert (
+        response.status_code == 422
+    )  # FastAPI/Pydantic validation error, not a 500 crash
 
 
 def test_predict_rejects_invalid_income_bracket(client):
@@ -108,7 +119,8 @@ def test_predict_rejects_out_of_range_attendance(client):
 
 def test_predict_accepts_unseen_city_gracefully(client):
     """A city never seen during training should still return a valid prediction (the
-    pipeline's one-hot encoder was built with handle_unknown='ignore') -- not a 500 error."""
+    pipeline's one-hot encoder was built with handle_unknown='ignore') -- not a 500 error.
+    """
     payload = {**VALID_PAYLOAD, "city": "Chennai"}
     response = client.post("/predict", json=payload)
     assert response.status_code == 200
